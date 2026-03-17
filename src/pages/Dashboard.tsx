@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { useStudents } from '../hooks/useStudents';
 import { StudentCard } from '../components/StudentCard';
 import { Button } from '../components/ui/button';
@@ -10,20 +9,14 @@ import { Student } from '../types/student';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '../components/ui/dialog';
 import { StudentForm } from '../components/StudentForm';
 import { RenewSubscriptionDialog } from '../components/RenewSubscriptionDialog';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 
 export function Dashboard() {
