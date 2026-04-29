@@ -11,9 +11,10 @@ import {
   SelectValue,
 } from './ui/select';
 import { DialogHeader, DialogTitle } from './ui/dialog';
+import { isoFromDateInput } from '../lib/date-utils';
 
 interface StudentFormProps {
-  onSubmit: (student: Omit<Student, 'id' | 'createdAt'>) => void;
+  onSubmit: (student: Omit<Student, 'id' | 'createdAt' | 'updatedAt' | 'cloudId'>) => void | Promise<void>;
   onCancel?: () => void;
   initialData?: Student;
 }
@@ -31,7 +32,7 @@ export function StudentForm({ onSubmit, onCancel, initialData }: StudentFormProp
     e.preventDefault();
     onSubmit({
       ...formData,
-      dueDate: new Date(formData.dueDate).toISOString(),
+      dueDate: isoFromDateInput(formData.dueDate),
     });
   };
 
@@ -78,8 +79,7 @@ export function StudentForm({ onSubmit, onCancel, initialData }: StudentFormProp
             onChange={(e) =>
               setFormData({ ...formData, phone: e.target.value })
             }
-            required
-            placeholder="11 1234-5678"
+            placeholder="381 636 7658"
           />
         </div>
 
@@ -95,10 +95,13 @@ export function StudentForm({ onSubmit, onCancel, initialData }: StudentFormProp
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="10:00-11:00">10:00 - 11:00</SelectItem>
+              <SelectItem value="11:00-12:00">11:00 - 12:00</SelectItem>
               <SelectItem value="16:00-17:00">16:00 - 17:00</SelectItem>
               <SelectItem value="17:00-18:00">17:00 - 18:00</SelectItem>
               <SelectItem value="18:00-19:00">18:00 - 19:00</SelectItem>
               <SelectItem value="19:00-20:00">19:00 - 20:00</SelectItem>
+              <SelectItem value="20:00-21:00">20:00 - 21:00</SelectItem>
             </SelectContent>
           </Select>
         </div>

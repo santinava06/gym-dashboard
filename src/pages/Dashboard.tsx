@@ -112,40 +112,26 @@ export function Dashboard() {
       {/* Tabs por turno */}
       <div className="px-4">
         <Tabs value={activeShift} onValueChange={setActiveShift} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
-            <TabsTrigger value="Todos">
-              Todos
-              <span className="ml-1 text-xs">({students.length})</span>
-            </TabsTrigger>
-            <TabsTrigger value="Mañana">
-              Mañana
-              <span className="ml-1 text-xs">
-                ({getStudentCountByShift('Mañana')})
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="Tarde">
-              Tarde
-              <span className="ml-1 text-xs">
-                ({getStudentCountByShift('Tarde')})
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="Noche">
-              Noche
-              <span className="ml-1 text-xs">
-                ({getStudentCountByShift('Noche')})
-              </span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="inline-flex h-auto min-w-max bg-gray-200/50 p-1 mb-4 rounded-lg">
+              {['Todos', '10:00-11:00', '11:00-12:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'].map((shift) => (
+                <TabsTrigger key={shift} value={shift} className="rounded-md px-3 py-1.5 text-sm">
+                  {shift}
+                  <span className="ml-1 text-xs">({getStudentCountByShift(shift)})</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
-          {['Todos', 'Mañana', 'Tarde', 'Noche'].map((shift) => (
+          {['Todos', '10:00-11:00', '11:00-12:00', '16:00-17:00', '17:00-18:00', '18:00-19:00', '19:00-20:00', '20:00-21:00'].map((shift) => (
             <TabsContent key={shift} value={shift} className="mt-0">
               {filteredStudents.length === 0 ? (
-                <Card className="p-8 text-center">
+                <Card className="p-8 text-center shadow-sm border-gray-200">
                   <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                   <p className="text-gray-500 mb-4">
                     {shift === 'Todos'
                       ? 'No hay alumnos registrados'
-                      : `No hay alumnos en el turno ${shift.toLowerCase()}`}
+                      : `No hay alumnos en el horario ${shift}`}
                   </p>
                   <Button onClick={() => setIsAddDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -207,7 +193,7 @@ export function Dashboard() {
         open={!!renewingStudent}
         onOpenChange={() => setRenewingStudent(null)}
         student={renewingStudent}
-        onRenew={renewSubscription}
+        onRenew={async (id, months) => { await renewSubscription(id, months); }}
       />
 
       {/* Delete Confirmation */}

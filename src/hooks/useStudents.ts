@@ -1,86 +1,144 @@
-import { useState, useEffect } from 'react';
-import { Student } from '../types/student';
-
-const STORAGE_KEY = 'gym_students';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Student } from '../types/student'
+import { getStudentRepository, type StudentInput } from '../lib/student-repository'
+import { addDaysUtcYmd, compareUtcYmd, parseIsoToUtcYmd, utcTodayYmd } from '../lib/date-utils'
 
 export function useStudents() {
-  const [students, setStudents] = useState<Student[]>(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  });
+  const repository = useMemo(() => getStudentRepository(), [])
+  const [students, setStudents] = useState<Student[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadStudents = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const nextStudents = await repository.list()
+      setStudents(nextStudents)
+    } catch (err) {
+      console.error('Students load error:', err)
+      setError('No se pudieron cargar los alumnos.')
+    } finally {
+      setLoading(false)
+    }
+  }, [repository])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
-  }, [students]);
+    void loadStudents()
+  }, [loadStudents])
 
-  const addStudent = (student: Omit<Student, 'id' | 'createdAt'>) => {
-    const newStudent: Student = {
-      ...student,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    setStudents((prev) => [...prev, newStudent]);
-  };
+  const addStudent = useCallback(
+    async (student: StudentInput) => {
+      try {
+        setSaving(true)
+        setError(null)
+        const createdStudent = await repository.create(student)
+        setStudents((prev) => [...prev, createdStudent])
+        return createdStudent
+      } catch (err) {
+        console.error('Student create error:', err)
+        setError('No se pudo guardar el alumno.')
+        throw err
+      } finally {
+        setSaving(false)
+      }
+    },
+    [repository],
+  )
 
-  const updateStudent = (id: string, updates: Partial<Student>) => {
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === id ? { ...student, ...updates } : student
-      )
-    );
-  };
+  const updateStudent = useCallback(
+    async (id: string, updates: StudentInput) => {
+      try {
+        setSaving(true)
+        setError(null)
+        const updatedStudent = await repository.update(id, updates)
+        setStudents((prev) =>
+          prev.map((student) => (student.id === id ? updatedStudent : student)),
+        )
+        return updatedStudent
+      } catch (err) {
+        console.error('Student update error:', err)
+        setError('No se pudo actualizar el alumno.')
+        throw err
+      } finally {
+        setSaving(false)
+      }
+    },
+    [repository],
+  )
 
-  const deleteStudent = (id: string) => {
-    setStudents((prev) => prev.filter((student) => student.id !== id));
-  };
+  const deleteStudent = useCallback(
+    async (id: string) => {
+      try {
+        setSaving(true)
+        setError(null)
+        await repository.remove(id)
+        setStudents((prev) => prev.filter((student) => student.id !== id))
+      } catch (err) {
+        console.error('Student delete error:', err)
+        setError('No se pudo eliminar el alumno.')
+        throw err
+      } finally {
+        setSaving(false)
+      }
+    },
+    [repository],
+  )
 
-  const getStudentsByShift = (shift: string) => {
-    if (shift === 'Todos') return students;
-    return students.filter((student) => student.shift === shift);
-  };
+  const renewSubscription = useCallback(
+    async (id: string, months: number) => {
+      try {
+        setSaving(true)
+        setError(null)
+        const updatedStudent = await repository.renew(id, months)
+        setStudents((prev) =>
+          prev.map((student) => (student.id === id ? updatedStudent : student)),
+        )
+        return updatedStudent
+      } catch (err) {
+        console.error('Student renew error:', err)
+        setError('No se pudo renovar la cuota.')
+        throw err
+      } finally {
+        setSaving(false)
+      }
+    },
+    [repository],
+  )
 
-  const getExpiringSoon = (days: number = 7) => {
-    const today = new Date();
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + days);
+  const getStudentsByShift = useCallback(
+    (shift: string) => {
+      if (shift === 'Todos') return students
+      return students.filter((student) => student.shift === shift)
+    },
+    [students],
+  )
 
-    return students.filter((student) => {
-      const dueDate = new Date(student.dueDate);
-      return dueDate >= today && dueDate <= targetDate;
-    });
-  };
+  const getExpiringSoon = useCallback(
+    (days = 7) => {
+      const today = utcTodayYmd()
+      const targetDate = addDaysUtcYmd(today, days)
 
-  const getExpired = () => {
-    const today = new Date();
-    return students.filter((student) => {
-      const dueDate = new Date(student.dueDate);
-      return dueDate < today;
-    });
-  };
-
-  const renewSubscription = (id: string, months: number) => {
-    setStudents((prev) =>
-      prev.map((student) => {
-        if (student.id !== id) return student;
-
-        const today = new Date();
-        const currentDueDate = new Date(student.dueDate);
-        // Si está vencida, calculamos desde hoy, si no, desde la fecha de vencimiento
-        const baseDate = currentDueDate < today ? today : currentDueDate;
-        
-        const newDueDate = new Date(baseDate);
-        newDueDate.setMonth(newDueDate.getMonth() + months);
-
-        return {
-          ...student,
-          dueDate: newDueDate.toISOString(),
-        };
+      return students.filter((student) => {
+        const dueDate = parseIsoToUtcYmd(student.dueDate)
+        return compareUtcYmd(dueDate, today) >= 0 && compareUtcYmd(dueDate, targetDate) <= 0
       })
-    );
-  };
+    },
+    [students],
+  )
+
+  const getExpired = useCallback(() => {
+    const today = utcTodayYmd()
+    return students.filter((student) => compareUtcYmd(parseIsoToUtcYmd(student.dueDate), today) < 0)
+  }, [students])
 
   return {
     students,
+    loading,
+    saving,
+    error,
+    reload: loadStudents,
     addStudent,
     updateStudent,
     deleteStudent,
@@ -88,5 +146,5 @@ export function useStudents() {
     getExpiringSoon,
     getExpired,
     renewSubscription,
-  };
+  }
 }

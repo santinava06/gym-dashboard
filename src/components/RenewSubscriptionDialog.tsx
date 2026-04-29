@@ -1,22 +1,23 @@
-import { useState } from 'react';
-import { Student } from '../types/student';
+import { useState } from 'react'
+import { Student } from '../types/student'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from './ui/dialog';
-import { Button } from './ui/button';
-import { Label } from './ui/label';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Calendar, CreditCard } from 'lucide-react';
+} from './ui/dialog'
+import { Button } from './ui/button'
+import { Label } from './ui/label'
+import { RadioGroup, RadioGroupItem } from './ui/radio-group'
+import { Calendar, CreditCard } from 'lucide-react'
+import { addMonthsToIsoDate, diffDaysUtc, formatIsoDate } from '../lib/date-utils'
 
 interface RenewSubscriptionDialogProps {
-  student: Student | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRenew: (id: string, months: number) => void;
+  student: Student | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onRenew: (id: string, months: number) => void | Promise<void>
 }
 
 export function RenewSubscriptionDialog({
@@ -25,30 +26,22 @@ export function RenewSubscriptionDialog({
   onOpenChange,
   onRenew,
 }: RenewSubscriptionDialogProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('1');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('1')
 
-  if (!student) return null;
+  if (!student) return null
 
   const calculateNewDueDate = (months: number) => {
-    // Si la cuota está vencida, calculamos desde hoy
-    // Si aún está activa, calculamos desde la fecha de vencimiento actual
-    const today = new Date();
-    const currentDueDate = new Date(student.dueDate);
-    const baseDate = currentDueDate < today ? today : currentDueDate;
-    
-    const newDate = new Date(baseDate);
-    newDate.setMonth(newDate.getMonth() + months);
-    return newDate;
-  };
+    return addMonthsToIsoDate(student.dueDate, months)
+  }
 
-  const handleRenew = () => {
-    const months = parseInt(selectedPeriod);
-    onRenew(student.id, months);
-    onOpenChange(false);
-    setSelectedPeriod('1');
-  };
+  const handleRenew = async () => {
+    const months = parseInt(selectedPeriod)
+    await onRenew(student.id, months)
+    onOpenChange(false)
+    setSelectedPeriod('1')
+  }
 
-  const isExpired = new Date(student.dueDate) < new Date();
+  const isExpired = diffDaysUtc(student.dueDate) < 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,7 +59,7 @@ export function RenewSubscriptionDialog({
         <div className="space-y-4 py-4">
           {isExpired && (
             <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-3 text-sm text-red-400">
-              ⚠️ Cuota vencida. La renovación iniciará desde hoy.
+              ⚠️ Cuota vencida. La renovación mantiene el día de vencimiento.
             </div>
           )}
 
@@ -76,9 +69,9 @@ export function RenewSubscriptionDialog({
               <div className="space-y-3">
                 {[
                   { months: 1, label: '1 Mes' },
-                  { months: 3, label: '3 Meses', discount: '5% descuento' },
-                  { months: 6, label: '6 Meses', discount: '10% descuento' },
-                  { months: 12, label: '1 Año', discount: '15% descuento' },
+                  { months: 3, label: '3 Meses' },
+                  { months: 6, label: '6 Meses' },
+                  { months: 12, label: '1 Año' },
                 ].map((option) => (
                   <div
                     key={option.months}
@@ -99,11 +92,6 @@ export function RenewSubscriptionDialog({
                     >
                       <div className="flex justify-between items-center">
                         <span className="font-medium">{option.label}</span>
-                        {option.discount && (
-                          <span className="text-xs text-green-400 font-medium">
-                            {option.discount}
-                          </span>
-                        )}
                       </div>
                     </Label>
                   </div>
@@ -118,14 +106,11 @@ export function RenewSubscriptionDialog({
               <span className="font-medium">Nueva fecha de vencimiento:</span>
             </div>
             <p className="text-lg font-bold text-white">
-              {calculateNewDueDate(parseInt(selectedPeriod)).toLocaleDateString(
-                'es-AR',
-                {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                }
-              )}
+              {formatIsoDate(calculateNewDueDate(parseInt(selectedPeriod)), 'es-AR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
             </p>
           </div>
         </div>
@@ -138,11 +123,15 @@ export function RenewSubscriptionDialog({
           >
             Cancelar
           </Button>
-          <Button onClick={handleRenew} className="flex-1 bg-gradient-to-r from-zinc-700 to-zinc-800 hover:from-zinc-600 hover:to-zinc-700">
+          <Button
+            onClick={handleRenew}
+            className="flex-1 bg-zinc-700 text-white border-zinc-600 hover:bg-zinc-600"
+          >
             Confirmar Renovación
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
+

@@ -3,6 +3,7 @@ import { Phone, Calendar, Clock, Trash2, Edit, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { diffDaysUtc, formatIsoDate } from '../lib/date-utils';
 
 interface StudentCardProps {
   student: Student;
@@ -12,15 +13,7 @@ interface StudentCardProps {
 }
 
 export function StudentCard({ student, onEdit, onDelete, onRenew }: StudentCardProps) {
-  const getDaysUntilDue = () => {
-    const today = new Date();
-    const dueDate = new Date(student.dueDate);
-    const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const daysUntilDue = getDaysUntilDue();
+  const daysUntilDue = diffDaysUtc(student.dueDate);
   const isExpired = daysUntilDue < 0;
   const isExpiringSoon = daysUntilDue >= 0 && daysUntilDue <= 7;
 
@@ -36,6 +29,12 @@ export function StudentCard({ student, onEdit, onDelete, onRenew }: StudentCardP
 
   const getShiftColor = () => {
     switch (student.shift) {
+      case '20:00-21:00':
+        return 'bg-green-900/30 text-green-400 border border-green-700/50';
+      case '10:00-11:00':
+        return 'bg-yellow-900/30 text-yellow-400 border border-yellow-700/50';
+      case '11:00-12:00':
+        return 'bg-red-900/30 text-red-400 border border-red-700/50';
       case '16:00-17:00':
         return 'bg-blue-900/30 text-blue-400 border border-blue-700/50';
       case '17:00-18:00':
@@ -101,7 +100,7 @@ export function StudentCard({ student, onEdit, onDelete, onRenew }: StudentCardP
           <div className="flex items-center gap-2 text-zinc-400">
             <Calendar className="h-4 w-4" />
             <span>
-              Vence: {new Date(student.dueDate).toLocaleDateString('es-AR')}
+              Vence: {formatIsoDate(student.dueDate, 'es-AR')}
             </span>
           </div>
           <div className="flex items-center gap-2 text-zinc-400">
