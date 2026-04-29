@@ -914,7 +914,7 @@ Para reportar bugs o sugerencias:
 
 ## 📄 Licencia
 
-Propiedad de **RFGym**. Todos los derechos reservados.
+Propiedad de **Santiago Navarro**. Todos los derechos reservados.
 
 ---
 
